@@ -3,15 +3,11 @@ import os, requests, numpy as np, pandas as pd, streamlit as st
 st.set_page_config(page_title="Stock Analyzer", layout="wide")
 st.title("📈 Single Stock Analyzer")
 
-# --- Read keys (works on Streamlit Cloud + local) ---
 def get_key(name: str) -> str:
-    # Streamlit Cloud
     try:
         return st.secrets.get(name, "")
     except Exception:
-        pass
-    # Local env
-    return os.getenv(name, "")
+        return os.getenv(name, "")
 
 AV_KEY = get_key("ALPHAVANTAGE_KEY")
 FRED_KEY = get_key("FRED_KEY")
@@ -25,9 +21,9 @@ def get_json(url, params):
 def get_overview(ticker):
     if not AV_KEY:
         return {}
-    url = "https://www.alphavantage.co/query"
     try:
-        return get_json(url, {"function":"OVERVIEW","symbol":ticker,"apikey":AV_KEY})
+        return get_json("https://www.alphavantage.co/query",
+                        {"function":"OVERVIEW","symbol":ticker,"apikey":AV_KEY})
     except Exception:
         return {}
 
@@ -35,10 +31,10 @@ def get_overview(ticker):
 def get_price(ticker):
     if not AV_KEY:
         return pd.DataFrame()
-    url = "https://www.alphavantage.co/query"
     try:
-        data = get_json(url, {"function":"TIME_SERIES_DAILY_ADJUSTED","symbol":ticker,"apikey":AV_KEY,"outputsize":"compact"})
-        ts = data.get("Time Series (Daily)",{})
+        data = get_json("https://www.alphavantage.co/query",
+                        {"function":"TIME_SERIES_DAILY_ADJUSTED","symbol":ticker,"apikey":AV_KEY,"outputsize":"compact"})
+        ts = data.get("Time Series (Daily)", {})
         if not ts:
             return pd.DataFrame()
         df = pd.DataFrame.from_dict(ts, orient="index")
@@ -51,19 +47,16 @@ def get_price(ticker):
 
 @st.cache_data(ttl=3600)
 def get_10y():
-    """Return latest US10Y (DGS10). If it fails, return NaN but DO NOT crash."""
     if not FRED_KEY:
         return np.nan
-    url = "https://api.stlouisfed.org/fred/series/observations"
-    params = {
-        "series_id":"DGS10",
-        "api_key":FRED_KEY,
-        "file_type":"json",
-        "sort_order":"desc",
-        "limit":1
-    }
     try:
-        data = get_json(url, params)
+        data = get_json("https://api.stlouisfed.org/fred/series/observations", {
+            "series_id":"DGS10",
+            "api_key":FRED_KEY,
+            "file_type":"json",
+            "sort_order":"desc",
+            "limit":1
+        })
         obs = data.get("observations", [])
         if not obs:
             return np.nan
@@ -87,26 +80,5 @@ def quant_score(pe, roe, debt, beta):
 
 ticker = st.text_input("Ticker", "AAPL").upper()
 
-# Show key status (helps debugging)
 with st.expander("🔧 Key status (debug)"):
     st.write({
-        "ALPHAVANTAGE_KEY_set": bool(AV_KEY),
-        "FRED_KEY_set": bool(FRED_KEY),
-    })
-
-if st.button("Analyze"):
-    ov = get_overview(ticker)
-    price = get_price(ticker)
-    y10 = get_10y()
-
-    pe = safe_float(ov.get("PERatio"), 0)
-    roe_raw = safe_float(ov.get("ReturnOnEquityTTM"), 0)
-    roe = roe_raw * 100 if roe_raw <= 1 else roe_raw
-    debt = safe_float(ov.get("DebtToEquityRatio"), 0)
-    beta = safe_float(ov.get("Beta"), 1)
-
-    score = quant_score(pe, roe, debt, beta)
-
-    st.subheader("Fundamentals")
-    st.writ
-::contentReference[oaicite:0]{index=0}
