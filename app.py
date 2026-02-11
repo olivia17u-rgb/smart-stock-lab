@@ -82,3 +82,6 @@ ticker = st.text_input("Ticker", "AAPL").upper()
 
 with st.expander("🔧 Key status (debug)"):
     st.write({
+        "ALPHAVANTAGE_KEY_set": bool(AV_KEY),
+        "FRED_KEY_set": bool(FRED_KEY),
+    })
